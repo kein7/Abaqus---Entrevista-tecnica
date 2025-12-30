@@ -1,5 +1,3 @@
-<<<<<<< HEAD:investments/models.py
-=======
 from django.db import models
 
 class Asset(models.Model):
@@ -39,4 +37,3 @@ class PortfolioAsset(models.Model):
 
     class Meta:
         unique_together = ('portfolio', 'asset')
->>>>>>> 12d9263 (fix: folder structure):investments/models/models.py
