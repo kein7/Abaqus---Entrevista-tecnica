@@ -11,12 +11,12 @@ class InvestmentsConfig(AppConfig):
             return
 
         # Importación diferida para evitar errores de carga circular
-        from .models import Asset
-        from .services import data_ingestion_service
+        from .models.models import Portfolio
+        from .services.etl import data_ingestion_service
         import os
 
-        # Verificamos si ya existen activos
-        if not Asset.objects.exists():
+        # Verificamos si ya existen portfolios
+        if not Portfolio.objects.exists():
             print("--- Base de datos vacía. Iniciando ETL automático... ---")
             excel_path = os.path.join(os.path.dirname(__file__), 'assets', 'datos.xlsx')
             
