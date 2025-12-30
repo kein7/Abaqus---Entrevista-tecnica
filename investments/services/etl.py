@@ -1,6 +1,6 @@
 import pandas as pd
 from django.db import transaction
-from ..models.models import Asset, Price, Portfolio, PortfolioAsset
+from investments.models.models import Asset, Price, Portfolio, PortfolioAsset
 from decimal import Decimal
 
 def data_ingestion_service(file_path: str):
