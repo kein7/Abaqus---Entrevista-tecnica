@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Evolución Portafolio</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  </head>
+  <body>
+    <h1>{{ portfolio.name }}</h1>
+
+    <div style="width: 80%; margin: auto">
+      <h3>Valor Total del Portafolio ($V_t$)</h3>
+      <canvas id="canvasVt"></canvas>
+    </div>
+
+    <div style="width: 80%; margin: auto; margin-top: 50px">
+      <h3>Evolución de Pesos ($w_{i,t}$)</h3>
+      <canvas id="canvasWeights"></canvas>
+    </div>
+
+    <script>
+      const data = {{ history_json|safe }};
+      const labels = data.map(entry => entry.date);
+
+      // 1. Gráfico de Línea para V_t
+      const ctxVt = document.getElementById('canvasVt').getContext('2d');
+      new Chart(ctxVt, {
+          type: 'line',
+          data: {
+              labels: labels,
+              datasets: [{
+                  label: 'Valor Total (USD)',
+                  data: data.map(entry => entry.total_value),
+                  borderColor: 'blue',
+                  fill: false
+              }]
+          }
+      });
+
+      // 2. Gráfico de Áreas Apiladas para Weights (Punto 5)
+      const assetNames = [...new Set(data[0].weights.map(w => w.asset))];
+      const weightDatasets = assetNames.map(name => ({
+          label: name,
+          data: data.map(entry => {
+              const w = entry.weights.find(wi => wi.asset === name);
+              return w ? w.weight * 100 : 0; // Mostrar como porcentaje
+          }),
+          fill: true
+      }));
+
+      const ctxW = document.getElementById('canvasWeights').getContext('2d');
+      new Chart(ctxW, {
+          type: 'line',
+          data: { labels: labels, datasets: weightDatasets },
+          options: {
+              scales: {
+                  y: { stacked: true, max: 100 }
+              },
+              elements: { point: { radius: 0 } }
+          }
+      });
+    </script>
+  </body>
+</html>
