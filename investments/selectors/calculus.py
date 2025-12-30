@@ -1,5 +1,5 @@
 from django.db.models import Sum, F
-from ..models.models import Portfolio, Price, PortfolioAsset
+from investments.models.models import Portfolio, Price, PortfolioAsset
 from datetime import date
 from decimal import Decimal
 
