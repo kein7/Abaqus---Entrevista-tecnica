@@ -17,7 +17,7 @@ def data_ingestion_service(file_path: str):
 
     with transaction.atomic():
         # 2. Crear Portafolios (V0 = 1,000,000,000)
-        v0 = Decimal('1000000000.00')
+        v0 = Decimal('1000000000.0000000000')
         p1, _ = Portfolio.objects.get_or_create(name="portafolio 1", defaults={'initial_value': v0})
         p2, _ = Portfolio.objects.get_or_create(name="portafolio 2", defaults={'initial_value': v0})
 
@@ -41,7 +41,7 @@ def data_ingestion_service(file_path: str):
             PortfolioAsset.objects.update_or_create(
                 portfolio=p1, 
                 asset=asset,
-                effective_date=t0_date, # La cantidad rige desde el inicio
+                effective_date=t0_date, 
                 defaults={'quantity': c_i0_p1, 'initial_weight': w1}
             )
             PortfolioAsset.objects.update_or_create(

@@ -1,77 +1,77 @@
-from django.db.models import OuterRef, Subquery
-from investments.models.models import Portfolio, Price, PortfolioAsset, Asset
-from datetime import date
+from collections import defaultdict
 from decimal import Decimal
+from datetime import date
+from investments.models.models import Portfolio, Price, PortfolioAsset, Asset
 
-def portfolio_history_selector(portfolio_id: int, start_date: date, end_date: date):
+def portfolio_history_selector(portfolio_id, start_date: date, end_date: date):
+    # 1. Consulta para el portafolio
     portfolio = Portfolio.objects.get(id=portfolio_id)
     
-    # 1. Obtenemos los IDs de los activos que han pasado por este portafolio
-    # Usamos values_list y distinct() sin parámetros (que sí es compatible con SQLite)
-    asset_ids = PortfolioAsset.objects.filter(
-        portfolio=portfolio
-    ).values_list('asset_id', flat=True).distinct()
-    
-    # 2. Obtenemos los nombres de esos activos para el mapeo del JSON
-    # Esto es mucho más eficiente y compatible
-    assets = Asset.objects.filter(id__in=asset_ids)
-    asset_names = {a.id: a.name for a in assets}
-    
-    # El resto del código sigue igual...
+    # 2. Traer todos los activos y crear un mapa de nombres
+    # Usamos un diccionario de mapeo
+    assets_map = {a.id: a.name for a in Asset.objects.all()}
+
+    # 3. Traer todos los precios necesarios de una sola vez
     prices_query = Price.objects.filter(
-        asset_id__in=asset_ids,
         date__range=(start_date, end_date)
     ).order_by('date')
 
-    # Agrupamos precios por fecha
-    prices_by_date = {}
+    # Agrupamos precios por fecha en un diccionario: 
+    prices_by_date = defaultdict(list)
     for p in prices_query:
-        if p.date not in prices_by_date:
-            prices_by_date[p.date] = []
         prices_by_date[p.date].append(p)
+
+    # 4. Traer todas las posiciones históricas de este portafolio
+    posiciones_queryset = PortfolioAsset.objects.filter(
+        portfolio=portfolio,
+        effective_date__lte=end_date
+    ).order_by('asset_id', 'effective_date')
+
+    pos_history_map = defaultdict(list)
+    for pa in posiciones_queryset:
+        pos_history_map[pa.asset_id].append((pa.effective_date, pa.quantity))
 
     history = []
 
-    # 3. Iteramos cronológicamente
+    # 5. Iteramos cronológicamente
     for d in sorted(prices_by_date.keys()):
         v_t = Decimal('0.0')
-        daily_assets = []
+        daily_assets_calc = []
         
         for price_obj in prices_by_date[d]:
-            # --- CAMBIO CLAVE PARA BONUS 2 ---
-            # Buscamos la cantidad que estaba vigente en la fecha 'd'
-            # Es decir: la cantidad con la fecha efectiva más reciente pero que no supere a 'd'
-            posicion_vigente = PortfolioAsset.objects.filter(
-                portfolio=portfolio,
-                asset_id=price_obj.asset_id,
-                effective_date__lte=d
-            ).order_by('-effective_date').first()
-
-            qty = posicion_vigente.quantity if posicion_vigente else Decimal('0')
-            # ---------------------------------
-
+            asset_pos_history = pos_history_map.get(price_obj.asset_id, [])
+            qty = Decimal('0.0')
+            
+            for effective_date, quantity in asset_pos_history:
+                if effective_date <= d:
+                    qty = quantity
+                else:
+                    break
+            
             x_it = price_obj.price * qty
             v_t += x_it
             
-            daily_assets.append({
+            daily_assets_calc.append({
                 'asset_id': price_obj.asset_id,
                 'x_it': x_it
             })
 
-        # Calculamos los pesos w_it (mismo procedimiento anterior)
-        weights = []
-        for item in daily_assets:
+        # 6. Cálculo de pesos w_it
+        weights_list = []
+        for item in daily_assets_calc:
+            # w_it = x_it / V_t
             w_it = (item['x_it'] / v_t) if v_t > 0 else Decimal('0')
-            weights.append({
-                'asset': asset_names[item['asset_id']],
-                'weight': float(w_it),
+            
+            weights_list.append({
+                'asset': assets_map.get(item['asset_id'], "Unknown"),
+                'weight': float(w_it), # Para el JSON de la API
                 'value': float(item['x_it'])
             })
 
         history.append({
             'date': d.strftime('%Y-%m-%d'),
             'total_value': float(v_t),
-            'weights': weights
+            'weights': weights_list
         })
 
     return history
