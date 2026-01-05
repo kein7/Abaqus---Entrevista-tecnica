@@ -32,7 +32,7 @@ class PortfolioAsset(models.Model):
     portfolio = models.ForeignKey(Portfolio, on_delete=models.CASCADE, related_name='assets')
     asset = models.ForeignKey(Asset, on_delete=models.CASCADE)
     quantity = models.DecimalField(max_digits=25, decimal_places=10)
-    initial_weight = models.DecimalField(max_digits=10, decimal_places=6, default=0,help_text="w_{i,0}")
+    initial_weight = models.DecimalField(max_digits=10, decimal_places=10, default=0, help_text="w_{i,0}")
     effective_date = models.DateField()
 
     class Meta:
