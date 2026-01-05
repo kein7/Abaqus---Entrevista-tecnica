@@ -28,12 +28,12 @@ class Portfolio(models.Model):
 class PortfolioAsset(models.Model):
     """
     Tabla intermedia que define la cantidad C_{i,t} de un activo en un portafolio.
-    Para el punto 4, esta cantidad será constante desde t=0.
     """
     portfolio = models.ForeignKey(Portfolio, on_delete=models.CASCADE, related_name='assets')
     asset = models.ForeignKey(Asset, on_delete=models.CASCADE)
-    quantity = models.DecimalField(max_digits=25, decimal_places=10, default=0)
-    initial_weight = models.DecimalField(max_digits=10, decimal_places=6, help_text="w_{i,0}")
+    quantity = models.DecimalField(max_digits=25, decimal_places=10)
+    initial_weight = models.DecimalField(max_digits=10, decimal_places=10, default=0, help_text="w_{i,0}")
+    effective_date = models.DateField()
 
     class Meta:
-        unique_together = ('portfolio', 'asset')
+        unique_together = ('portfolio', 'asset', 'effective_date')
